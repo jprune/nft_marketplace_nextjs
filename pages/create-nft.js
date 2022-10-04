@@ -1,23 +1,39 @@
 import React, { useState, useMemo, useCallback, useContext } from 'react';
+import { create as ipfsHttpClient } from 'ipfs-http-client';
 import { useRouter } from 'next/router';
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 
+import { NFTContext } from '../context/NFTContext';
 import { Button, Input } from '../components';
 import images from '../assets';
 
+const projectId = process.env.NEXT_PUBLIC_IPFS_PROJECT_ID;
+const projectSecret = process.env.NEXT_PUBLIC_API_KEY_SECRET;
+const auth = `Basic ${Buffer.from(`${projectId}:${projectSecret}`).toString('base64')}`;
+const options = { host: 'ipfs.infura.io', protocol: 'https', port: 5001, headers: { authorization: auth } };
+const client = ipfsHttpClient(options);
+const dedicatedEndPoint = 'https://jprnftmarketplace.infura-ipfs.io';
+
 const CreateNFT = () => {
+  const { createSale, isLoadingNFT } = useContext(NFTContext);
   const { theme } = useTheme();
   const [fileUrl, setFileUrl] = useState(null);
-  const [formInput, setFormInput] = useState({
-    price: '',
-    name: '',
-    description: '',
-  });
+  const uploadToInfura = async (file) => {
+    try {
+      const added = await client.add({ content: file });
 
-  const onDrop = useCallback(() => {
-    // upload image to the blockchain ipfs
+      const url = `${dedicatedEndPoint}/ipfs/${added.path}`;
+
+      setFileUrl(url);
+    } catch (error) {
+      console.log('Error uploading file: ', error);
+    }
+  };
+
+  const onDrop = useCallback(async (acceptedFile) => {
+    await uploadToInfura(acceptedFile[0]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
@@ -33,7 +49,38 @@ const CreateNFT = () => {
     ${isDragReject && 'border-file-reject'}`
   ), [isDragActive, isDragAccept, isDragReject]);
 
-  console.log(formInput);
+  // console.log(formInput);
+  const [formInput, setFormInput] = useState({
+    price: '',
+    name: '',
+    description: '',
+  });
+  const router = useRouter();
+
+  // create NFT
+  const createMarket = async () => {
+    const { name, description, price } = formInput;
+    if (!name || !description || !price || !fileUrl) return;
+    /* first, upload to IPFS */
+    const data = JSON.stringify({ name, description, image: fileUrl });
+    try {
+      const added = await client.add(data);
+      const url = `${dedicatedEndPoint}/ipfs/${added.path}`;
+      /* after file is uploaded to IPFS, pass the URL to save it on Polygon */
+      await createSale(url, formInput.price);
+      router.push('/');
+    } catch (error) {
+      console.log('Error creating NFT: ', error);
+    }
+  };
+
+  // if (isLoadingNFT) {
+  //   return (
+  //     <div className="flexCenter" style={{ height: '51vh' }}>
+  //       <Loader />
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex justify-center sm:px-4 p-12">
@@ -91,7 +138,7 @@ const CreateNFT = () => {
           <Button
             btnName="Create NFT"
             classStyles="rounded-xl"
-            handleClick={() => {}}
+            handleClick={() => createMarket(formInput, fileUrl, router)}
           />
         </div>
       </div>
