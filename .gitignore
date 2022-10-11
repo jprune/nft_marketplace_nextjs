@@ -52,3 +52,4 @@ typechain
 #Hardhat files
 cache
 artifacts
+hardhatHelp.md
