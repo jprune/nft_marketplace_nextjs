@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 
 import { NFTContext } from '../context/NFTContext';
-import { Loader, NFTCard, Button, Modal } from '../components';
+import { Loader, Button, Modal } from '../components';
 import { shortenAddress } from '../utils/shortenAddress';
 import images from '../assets';
 
@@ -45,7 +45,7 @@ const PaymentBodyCmp = ({ nft, nftCurrency }) => (
 );
 
 const NFTDetails = () => {
-  const { currentAccount, nftCurrency } = useContext(NFTContext);
+  const { currentAccount, nftCurrency, buyNFT, isLoadingNFT } = useContext(NFTContext);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const [nft, setNft] = useState({
@@ -57,6 +57,7 @@ const NFTDetails = () => {
     seller: '',
   });
   const [paymentModal, setPaymentModal] = useState(false);
+  const [successModal, setSuccessModal] = useState(false);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -64,6 +65,14 @@ const NFTDetails = () => {
     setNft(router.query);
     setIsLoading(false);
   }, [router.isReady]);
+
+  const checkout = async () => {
+    await buyNFT(nft);
+
+    setPaymentModal(false);
+
+    setSuccessModal(true);
+  };
 
   if (isLoading) return <Loader />;
 
@@ -101,10 +110,16 @@ const NFTDetails = () => {
             <p className="font-poppins dark:text-white text-nft-black-1 text-base font-normal border border-gray p-2">
               You cannot buy your own NFT...
             </p>
+          ) : currentAccount === nft.owner.toLowerCase() ? (
+            <Button
+              btnName="List on marketplace"
+              classStyles="mr-5 sm:mr-0 sm:mb-5 rounded-xl"
+              handleClick={() => router.push(`/resell-nft?tokenId=${nft.tokenId}&tokenURI=${nft.tokenURI}`)}
+            />
           ) : (
             <Button
               btnName={`Buy for ${nft.price} ${nftCurrency}`}
-              classStyles="mr-5 sm:mr-0 rounded-xl"
+              classStyles="mr-5 sm:mr-0 sm:mb-5 rounded-xl"
               handleClick={() => setPaymentModal(true)}
             />
           )}
@@ -121,12 +136,63 @@ const NFTDetails = () => {
             <Button
               btnName="Checkout"
               classStyles="mr-5 sm:mb-5 sm:mr-0 rounded-xl"
-              handleClick={() => {}}
+              handleClick={checkout}
             />
             <Button
               btnName="Cancel"
               classStyles="rounded-xl"
               handleClick={() => setPaymentModal(false)}
+            />
+          </div>
+        )}
+        handleClose={() => setPaymentModal(false)}
+      />
+      )}
+
+      {isLoadingNFT
+      && (
+      <Modal
+        header="Buying NFT..."
+        body={(
+          <div className="flexCenter flex-col text-center">
+            <div className="relative w-52 h-52">
+              <Loader />
+            </div>
+          </div>
+        )}
+        handleClose={() => setPaymentModal(false)}
+      />
+      )}
+
+      {successModal && (
+
+      <Modal
+        header="Payment successful"
+        body={(
+          <div
+            className="flexCenter flex-col text-center"
+            onClick={() => setSuccessModal(false)}
+          >
+            <div className="relative w-52 h-52">
+              <Image
+                src={nft.image}
+                objectFit="cover"
+                layout="fill"
+              />
+            </div>
+            <p className="font-poppins dark:text-white text-nft-black-1 font-normal text-sm minlg:text-xl mt-10">
+              You successfully purchased
+              <span className="font-semibold"> {nft.name} </span>from
+              <span className="font-semibold"> {shortenAddress(nft.seller)}</span>
+            </p>
+          </div>
+        )}
+        footer={(
+          <div className="flexCenter flex-row">
+            <Button
+              btnName="Check out your purchase!"
+              classStyles=" sm:mb-5 sm:mr-0 rounded-xl"
+              handleClick={() => router.push('/my-nfts')}
             />
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 // handle wallet integration
 import Web3Modal from 'web3modal';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { ethers } from 'ethers';
 // handle NFT upload to IPFS
 import { MarketAddress, MarketAddressABI } from './constants';
@@ -12,6 +13,7 @@ const fetchContract = (signerOrProvider) => new ethers.Contract(MarketAddress, M
 
 export const NFTProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState('');
+  const [isLoadingNFT, setIsLoadingNFT] = useState(false);
   const nftCurrency = 'ETH';
 
   // Connect wallet to application
@@ -54,12 +56,17 @@ export const NFTProvider = ({ children }) => {
     const contract = fetchContract(signer);
     const listingPrice = await contract.getListingPrice();
 
-    const transaction = await contract.createToken(url, price, { value: listingPrice.toString() });
+    // user wants to list or resell?
+    const transaction = !isReselling
+      ? await contract.createToken(url, price, { value: listingPrice.toString() })
+      : await contract.resellToken(id, price, { value: listingPrice.toString() });
 
+    setIsLoadingNFT(true);
     await transaction.wait();
   };
 
   const fetchNFTs = async () => {
+    setIsLoadingNFT(false);
     const provider = new ethers.providers.JsonRpcProvider();
     const contract = fetchContract(provider);
     // call fetchMarketItems smart contract function
@@ -89,6 +96,7 @@ export const NFTProvider = ({ children }) => {
 
   // function to fetch either all listed NFTs of a user or all of his NFTs - (parameter type defines which way the function will go)
   const fetchMyNFTsOrListedNFTs = async (type) => {
+    setIsLoadingNFT(false);
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
     const provider = new ethers.providers.Web3Provider(connection);
@@ -123,8 +131,26 @@ export const NFTProvider = ({ children }) => {
     return items;
   };
 
+  const buyNFT = async (nft) => {
+    const web3Modal = new Web3Modal();
+    const connection = await web3Modal.connect();
+    const provider = new ethers.providers.Web3Provider(connection);
+    // get the user that wants to create the NFT
+    const signer = provider.getSigner();
+
+    const contract = fetchContract(signer);
+    // convert human ETH into Wei
+    const price = ethers.utils.parseUnits(nft.price.toString(), 'ether');
+
+    const transaction = await contract.createMarketSale(nft.tokenId, { value: price });
+
+    setIsLoadingNFT(true);
+    await transaction.wait();
+    setIsLoadingNFT(false);
+  };
+
   return (
-    <NFTContext.Provider value={{ nftCurrency, connectWallet, currentAccount, createSale, fetchNFTs, fetchMyNFTsOrListedNFTs }}>
+    <NFTContext.Provider value={{ nftCurrency, connectWallet, currentAccount, createSale, fetchNFTs, fetchMyNFTsOrListedNFTs, buyNFT, isLoadingNFT }}>
       {children}
     </NFTContext.Provider>
   );

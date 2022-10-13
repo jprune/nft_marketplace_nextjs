@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useTheme } from 'next-themes';
 
 import { NFTContext } from '../context/NFTContext';
-import { Button, Input } from '../components';
+import { Button, Input, Loader } from '../components';
 import images from '../assets';
 
 const projectId = process.env.NEXT_PUBLIC_IPFS_PROJECT_ID;
@@ -49,7 +49,14 @@ const CreateNFT = () => {
     ${isDragReject && 'border-file-reject'}`
   ), [isDragActive, isDragAccept, isDragReject]);
 
-  // console.log(formInput);
+  if (isLoadingNFT) {
+    return (
+      <div className="flexStart min-h-screen">
+        <Loader />
+      </div>
+    );
+  }
+
   const [formInput, setFormInput] = useState({
     price: '',
     name: '',
@@ -74,14 +81,6 @@ const CreateNFT = () => {
     }
   };
 
-  // if (isLoadingNFT) {
-  //   return (
-  //     <div className="flexCenter" style={{ height: '51vh' }}>
-  //       <Loader />
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="flex justify-center sm:px-4 p-12">
       <div className="w-3/5 md:w-full">
@@ -89,24 +88,26 @@ const CreateNFT = () => {
         <div className="mt-16">
           <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-xl">Upload File</p>
           <div className="mt-4">
-            <div {...getRootProps()} className={fileStyle}>
-              <input {...getInputProps()} />
-              <div className="flexCenter flex-col text-center">
-                <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-xl">JPG, PNG, GIF, SVG, WEBM. Max 50mb</p>
-                <div className="my-12 w-full flex justify-center">
-                  <Image
-                    src={images.upload}
-                    width={100}
-                    height={100}
-                    objectFit="contain"
-                    alt="file upload"
-                    className={theme === 'light' ? 'filter invert' : undefined}
-                  />
+            {!fileUrl && (
+              <div {...getRootProps()} className={fileStyle}>
+                <input {...getInputProps()} />
+                <div className="flexCenter flex-col text-center">
+                  <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-xl">JPG, PNG, GIF, SVG, WEBM. Max 50mb</p>
+                  <div className="my-12 w-full flex justify-center">
+                    <Image
+                      src={images.upload}
+                      width={100}
+                      height={100}
+                      objectFit="contain"
+                      alt="file upload"
+                      className={theme === 'light' ? 'filter invert' : undefined}
+                    />
+                  </div>
+                  <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-sm">Drag and Drop File</p>
+                  <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-sm">or browse media on your device</p>
                 </div>
-                <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-sm">Drag and Drop File</p>
-                <p className="font-poppins dark:text-white text-nft-black-1 font-semibold text-sm">or browse media on your device</p>
               </div>
-            </div>
+            )}
             {fileUrl && (
               <aside>
                 <div>
