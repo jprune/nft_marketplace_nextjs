@@ -26,6 +26,9 @@ contract NFTMarketplace is ERC721URIStorage {
     // fee to list an nft on the marketplace
     uint256 listingPrice = 0.025 ether;
 
+    uint256 ownerCommissionPercentage = 15;
+    uint256 creatorCommissionPercentage = 1000 - ownerCommissionPercentage;
+
     // declaring the owner of the contract
     // owner earns a commision on every item sold
     address payable owner;
@@ -59,6 +62,24 @@ contract NFTMarketplace is ERC721URIStorage {
     // the owner of the contract is the one deploying it
     constructor() ERC721("Friend's Couch", "FRIC") {
       owner = payable(msg.sender);
+    }
+
+    function getOwnerShare(uint256 x) private view returns(uint256) {
+        return (x / 1000) * ownerCommissionPercentage;
+    }
+
+    function getCreatorShare(uint256 x) private view returns(uint256) {
+        return (x / 1000) * creatorCommissionPercentage;
+    }
+
+    function updateOwnerCommissionPercentage(uint _ownerCommissionPercentage) public payable {
+        require(owner == msg.sender, "Only marketplace owner can update the listing price");
+
+        ownerCommissionPercentage = _ownerCommissionPercentage;
+    }
+
+    function getOwnerCommissionPercentage() public view returns (uint256) {
+        return ownerCommissionPercentage;
     }
 
     function updateListingPrice(uint _listingPrice) public payable {
@@ -127,6 +148,7 @@ contract NFTMarketplace is ERC721URIStorage {
     function createMarketSale(uint256 tokenId) public payable {
         // get the selling price of the market offer
         uint price = idToMarketItem[tokenId].price;
+        address payable creator = idToMarketItem[tokenId].seller;
         // is the buyer paying the asking price?
         require(msg.value == price, "Please submit the asking price in order to complete the purchase");
 
@@ -143,8 +165,8 @@ contract NFTMarketplace is ERC721URIStorage {
 
         // transfer listing fee from buyer to the person that created that NFT (creator) - royalty        
         payable(owner).transfer(listingPrice);
-        // transfer ETH to the seller
-        payable(idToMarketItem[tokenId].seller).transfer(msg.value);
+        payable(owner).transfer(getOwnerShare(msg.value));
+        payable(creator).transfer(getCreatorShare(msg.value));
     }
 
     // returns all unsold market items - "view" means no logic processing - "returns an array of MarketItems"
