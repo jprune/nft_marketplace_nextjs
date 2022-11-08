@@ -24,7 +24,7 @@ contract NFTMarketplace is ERC721URIStorage {
     Counters.Counter private _itemsSold;
 
     // fee to list an nft on the marketplace
-    uint256 listingPrice = 0.025 ether;
+    uint256 listingPrice = 0.005 ether;
 
     uint256 ownerCommissionPercentage = 15;
     uint256 creatorCommissionPercentage = 1000 - ownerCommissionPercentage;
