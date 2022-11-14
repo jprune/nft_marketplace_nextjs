@@ -12,7 +12,7 @@ Have fun!</p>
 ## Screenshots
 
 ![Home Page](/screenshots/Homepage.png "Home Page")
-![Homepage Collection](/screenshots/HomepageCollection.png "Collection")
+![Homepage Collection](/screenshots/HompageCollection.png "Collection")
 ![Account Dashboard](/screenshots/AccountDashboard.png "Account Dashboard")
 ![ListedNFTs](/screenshots/ListedNFTs.png "ListedNFTs")
 
